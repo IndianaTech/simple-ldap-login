@@ -21,19 +21,6 @@ class SimpleLDAPLogin {
 
 		$this->settings = $this->get_settings_obj( $this->prefix );
 
-		if( trim($this->get_setting('directory')) == "ad" ) {
-			require_once( plugin_dir_path(__FILE__) . "/includes/adLDAP.php" );
-			$this->adldap = new adLDAP(
-				array (
-					"account_suffix"		=>	trim($this->get_setting('account_suffix')),
-					"use_tls"				=>	str_true( $this->get_setting('use_tls') ),
-					"base_dn"				=>	trim($this->get_setting('base_dn')),
-					"domain_controllers"	=>	(array)$this->get_setting('domain_controllers'),
-					"ad_port"				=>	(int)$this->get_setting('ldap_port')
-				)
-			);
-		}
-
 		add_action('admin_init', array($this, 'save_settings') );
 
 		if ($this->is_network_version()) {
@@ -261,9 +248,28 @@ class SimpleLDAPLogin {
 		}
 	}
 
+	function init_adldap() {
+		if ( $this->adldap === null ) {
+			if( trim($this->get_setting('directory')) == "ad" ) {
+				require_once( plugin_dir_path(__FILE__) . "/includes/adLDAP.php" );
+				$this->adldap = new adLDAP(
+					array (
+						"account_suffix"     => trim($this->get_setting('account_suffix')),
+						"use_tls"            => str_true( $this->get_setting('use_tls') ),
+						"base_dn"            => trim($this->get_setting('base_dn')),
+						"domain_controllers" => (array)$this->get_setting('domain_controllers'),
+						"ad_port"            => (int)$this->get_setting('ldap_port')
+					)
+				);
+			}
+		}
+	}
+
 	function authenticate ($user, $username, $password) {
 		// If previous authentication succeeded, respect that
 		if ( is_a($user, 'WP_User') ) { return $user; }
+
+		$this->init_adldap();
 
 		// Determine if user a local admin
 		$local_admin = false;
